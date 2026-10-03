@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Reconciliation Service | Enterprise Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0d14;
+            --bg-secondary: #121824;
+            --bg-card: rgba(22, 30, 46, 0.75);
+            --bg-card-hover: rgba(30, 41, 64, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(99, 102, 241, 0.4);
+            
+            --accent-primary: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-glow: rgba(99, 102, 241, 0.25);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --status-matched: #10b981;
+            --status-mismatch: #f59e0b;
+            --status-missing: #ef4444;
+            --status-duplicate: #8b5cf6;
+            --status-bg-matched: rgba(16, 185, 129, 0.15);
+            --status-bg-mismatch: rgba(245, 158, 11, 0.15);
+            --status-bg-missing: rgba(239, 68, 68, 0.15);
+            --status-bg-duplicate: rgba(139, 92, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+        }
+
+        /* Top Navigation Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 2.5rem;
+            background: rgba(10, 13, 20, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            text-transform: uppercase;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+        }
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Top Metrics Cards Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-primary);
+        }
+
+        .metric-card.matched::before { background: var(--status-matched); }
+        .metric-card.mismatch::before { background: var(--status-mismatch); }
+        .metric-card.missing::before { background: var(--status-missing); }
+        .metric-card.duplicate::before { background: var(--status-duplicate); }
+
+        .metric-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0.4rem 0 0.2rem 0;
+            letter-spacing: -0.03em;
+        }
+
+        .metric-sub {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        /* Main Dashboard Sections Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards and Panels */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* CSV Upload Dropzones */
+        .dropzone-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .dropzone-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-primary);
+        }
+
+        .dropzone-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dropzone-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* Tolerances Control Form */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-primary);
+        }
+
+        /* Results Table */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        th {
+            padding: 0.85rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        td {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Status Pills */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.725rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-matched { background: var(--status-bg-matched); color: var(--status-matched); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-discrepancy { background: var(--status-bg-mismatch); color: var(--status-mismatch); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-missing-internal { background: var(--status-bg-missing); color: var(--status-missing); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-missing-settlement { background: var(--status-bg-missing); color: var(--status-missing); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-duplicate { background: var(--status-bg-duplicate); color: var(--status-duplicate); border: 1px solid rgba(139, 92, 246, 0.3); }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .tab {
+            padding: 0.45rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .tab.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 540px;
+            padding: 1.75rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .modal-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            padding: 0.85rem 1.25rem;
+            border-radius: 10px;
+            background: rgba(18, 24, 36, 0.95);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            animation: slideIn 0.3s ease forwards;
+        }
+
+        .toast.success { border-left: 4px solid var(--status-matched); }
+        .toast.error { border-left: 4px solid var(--status-missing); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🔄</div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="brand-title">ReconcileX</span>
+                    <span class="brand-badge">Java 21 / Spring Boot</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Automated Payment & Settlement Reconciliation Engine</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="generateDemoData()">✨ Generate Demo Data</button>
+            <button class="btn btn-primary" onclick="triggerReconciliation()">▶ Run Reconciliation</button>
+            <a href="/swagger-ui.html" target="_blank" class="btn btn-secondary" style="text-decoration: none;">📖 API Docs</a>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- Metrics Overview Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Total Transactions</div>
+                <div class="metric-value" id="metric-total">0</div>
+                <div class="metric-sub" id="metric-total-sub">0 Internal / 0 Settlement</div>
+            </div>
+            <div class="metric-card matched">
+                <div class="metric-label">Matched Records</div>
+                <div class="metric-value" style="color: var(--status-matched);" id="metric-matched">0</div>
+                <div class="metric-sub" id="metric-matched-pct">0% match rate</div>
+            </div>
+            <div class="metric-card mismatch">
+                <div class="metric-label">Amount Mismatches</div>
+                <div class="metric-value" style="color: var(--status-mismatch);" id="metric-mismatch">0</div>
+                <div class="metric-sub" id="metric-mismatch-amt">$0.00 variance</div>
+            </div>
+            <div class="metric-card missing">
+                <div class="metric-label">Missing Records</div>
+                <div class="metric-value" style="color: var(--status-missing);" id="metric-missing">0</div>
+                <div class="metric-sub" id="metric-missing-sub">0 Internal / 0 Settlement</div>
+            </div>
+            <div class="metric-card duplicate">
+                <div class="metric-label">Duplicates Flagged</div>
+                <div class="metric-value" style="color: var(--status-duplicate);" id="metric-duplicate">0</div>
+                <div class="metric-sub">Duplicate Reference IDs</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Main Controls & Results Grid -->
+        <div class="dashboard-grid">
+
+            <!-- Sidebar Controls -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                
+                <!-- CSV Import Dropzones -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📥 CSV Data Import</span>
+                    </div>
+                    <div class="dropzone-container">
+                        <div class="dropzone" id="dropzone-internal" onclick="document.getElementById('file-internal').click()">
+                            <div class="dropzone-icon">📄</div>
+                            <div class="dropzone-text">Upload Internal Sales CSV</div>
+                            <div class="dropzone-sub">Click or drag internal payment records</div>
+                            <input type="file" id="file-internal" class="file-input" accept=".csv" onchange="uploadCsv('internal', this.files[0])">
+                        </div>
+
+                        <div class="dropzone" id="dropzone-settlement" onclick="document.getElementById('file-settlement').click()">
+                            <div class="dropzone-icon">💳</div>
+                            <div class="dropzone-text">Upload Settlement CSV</div>
+                            <div class="dropzone-sub">Click or drag external processor settlements</div>
+                            <input type="file" id="file-settlement" class="file-input" accept=".csv" onchange="uploadCsv('settlement', this.files[0])">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configurable Tolerance Rules Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">⚙️ Matching Rules</span>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">
+                            <span>Amount Tolerance ($)</span>
+                            <span id="lbl-amount-tol">$0.05</span>
+                        </div>
+                        <input type="number" id="input-amount-tol" class="form-control" step="0.01" value="0.05">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">
+                            <span>Fee Tolerance ($)</span>
+                            <span id="lbl-fee-tol">$0.01</span>
+                        </div>
+                        <input type="number" id="input-fee-tol" class="form-control" step="0.01" value="0.01">
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">
+                            <span>Date Window (Minutes)</span>
+                            <span id="lbl-date-window">1440 mins (24h)</span>
+                        </div>
+                        <input type="number" id="input-date-window" class="form-control" step="15" value="1440">
+                    </div>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="saveToleranceRules()">Save Matching Tolerances</button>
+                </div>
+
+                <!-- Recent Reconciliation Batches -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">📜 Batch History</span>
+                    </div>
+                    <div id="batch-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 240px; overflow-y: auto;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">No reconciliation runs yet. Click 'Run Reconciliation' to start.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Main Results Area -->
+            <div class="panel" style="display: flex; flex-direction: column;">
+                <div class="panel-header">
+                    <div>
+                        <span class="panel-title" id="current-batch-title">Reconciliation Results</span>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;" id="current-batch-sub">Select or run a reconciliation batch to inspect detailed audit items.</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-success" id="btn-export" onclick="exportCurrentBatch()" disabled>⬇ Export CSV Report</button>
+                    </div>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="filter-tabs">
+                    <div class="tab active" onclick="filterResults(null, this)">All Results</div>
+                    <div class="tab" onclick="filterResults('MATCHED', this)">✅ Matched</div>
+                    <div class="tab" onclick="filterResults('DISCREPANCY', this)">⚠️ Discrepancies</div>
+                    <div class="tab" onclick="filterResults('MISSING_INTERNAL', this)">❓ Missing Internal</div>
+                    <div class="tab" onclick="filterResults('MISSING_SETTLEMENT', this)">❓ Missing Settlement</div>
+                    <div class="tab" onclick="filterResults('DUPLICATE', this)">♊ Duplicates</div>
+                </div>
+
+                <!-- Results Table -->
+                <div class="table-responsive" style="flex: 1;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Category</th>
+                                <th>Internal Ref</th>
+                                <th>Settlement Ref</th>
+                                <th>Int Amount</th>
+                                <th>Settl Amount</th>
+                                <th>Diff ($)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                                    No reconciliation batch active. Click <b>✨ Generate Demo Data</b> and <b>▶ Run Reconciliation</b> above.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Resolution Modal Dialog -->
+    <div class="modal-overlay" id="resolution-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Resolve Discrepancy</span>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-secondary);" id="modal-discrepancy-info">
+                Item information loading...
+            </div>
+            <div class="form-group">
+                <label class="form-label">Resolution Audit Notes</label>
+                <textarea id="modal-resolution-notes" class="form-control" rows="4" placeholder="Enter reason for resolving discrepancy (e.g. verified processor fee deduction, manual override approved)..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-success" onclick="submitResolution()">Confirm Resolution</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        let currentBatchId = null;
+        let currentStatusFilter = null;
+        let activeResolvingId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData();
+        });
+
+        async function loadInitialData() {
+            try {
+                const res = await fetch('/api/v1/reconciliation/batches');
+                const batches = await res.json();
+                renderBatchList(batches);
+                if (batches.length > 0) {
+                    selectBatch(batches[0].id);
+                }
+
+                // Load active default tolerance config
+                const tolRes = await fetch('/api/v1/tolerances/default');
+                const tol = await tolRes.json();
+                document.getElementById('input-amount-tol').value = tol.amountTolerance;
+                document.getElementById('input-fee-tol').value = tol.feeTolerance;
+                document.getElementById('input-date-window').value = tol.dateWindowMinutes;
+            } catch (err) {
+                console.error("Failed to load initial dashboard data", err);
+            }
+        }
+
+        async function generateDemoData() {
+            showToast("Generating synthetic mock transaction dataset...", "info");
+            try {
+                const res = await fetch('/api/v1/demo/generate', { method: 'POST' });
+                const data = await res.json();
+                showToast("Demo transactions generated! Starting auto-reconciliation...", "success");
+                await triggerReconciliation();
+            } catch (err) {
+                showToast("Failed to generate demo data: " + err.message, "error");
+            }
+        }
+
+        async function triggerReconciliation() {
+            showToast("Executing multi-pass matching pipeline...", "info");
+            try {
+                const res = await fetch('/api/v1/reconciliation/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batchName: "Interactive UI Run" })
+                });
+                const batch = await res.json();
+                showToast(`Reconciliation complete! Batch ${batch.id} finished.`, "success");
+                await loadInitialData();
+            } catch (err) {
+                showToast("Reconciliation failed: " + err.message, "error");
+            }
+        }
+
+        async function uploadCsv(type, file) {
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showToast(`Uploading ${type} CSV file...`, "info");
+            try {
+                const res = await fetch(`/api/v1/imports/${type}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                showToast(`Imported ${data.recordsImported} records (${data.duplicateCount} duplicates flagged)!`, "success");
+            } catch (err) {
+                showToast(`Failed to upload ${type} CSV: ${err.message}`, "error");
+            }
+        }
+
+        function renderBatchList(batches) {
+            const listEl = document.getElementById('batch-list');
+            if (!batches || batches.length === 0) {
+                listEl.innerHTML = `<div style="font-size: 0.8rem; color: var(--text-muted);">No reconciliation runs yet.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = batches.map(b => `
+                <div style="padding: 0.65rem 0.8rem; background: ${b.id === currentBatchId ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)'}; border: 1px solid ${b.id === currentBatchId ? 'var(--accent-primary)' : 'var(--border-color)'}; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="selectBatch('${b.id}')">
+                    <div>
+                        <div style="font-size: 0.825rem; font-weight: 700; color: var(--text-primary);">${b.batchName}</div>
+                        <div style="font-size: 0.725rem; color: var(--text-muted);" class="mono">${b.id}</div>
+                    </div>
+                    <span class="badge ${b.status === 'COMPLETED' ? 'badge-matched' : 'badge-discrepancy'}">${b.status}</span>
+                </div>
+            `).join('');
+        }
+
+        async function selectBatch(batchId) {
+            currentBatchId = batchId;
+            document.getElementById('btn-export').disabled = false;
+
+            try {
+                const batchRes = await fetch(`/api/v1/reconciliation/batches/${batchId}`);
+                const batch = await batchRes.json();
+                updateMetrics(batch);
+
+                document.getElementById('current-batch-title').innerText = `Batch ${batch.id} (${batch.batchName})`;
+                document.getElementById('current-batch-sub').innerText = batch.toleranceConfigSummary || 'Completed reconciliation details';
+
+                loadBatchResults();
+            } catch (err) {
+                console.error("Failed to select batch", err);
+            }
+        }
+
+        function updateMetrics(batch) {
+            const total = (batch.totalInternalCount || 0) + (batch.totalSettlementCount || 0);
+            document.getElementById('metric-total').innerText = total;
+            document.getElementById('metric-total-sub').innerText = `${batch.totalInternalCount} Internal / ${batch.totalSettlementCount} Settlement`;
+
+            document.getElementById('metric-matched').innerText = batch.matchedCount || 0;
+            const matchPct = total > 0 ? ((batch.matchedCount * 2 / total) * 100).toFixed(1) : 0;
+            document.getElementById('metric-matched-pct').innerText = `${matchPct}% match coverage`;
+
+            document.getElementById('metric-mismatch').innerText = batch.mismatchCount || 0;
+            document.getElementById('metric-mismatch-amt').innerText = `$${(batch.totalDiscrepancyAmount || 0).toFixed(2)} variance`;
+
+            const totalMissing = (batch.missingInternalCount || 0) + (batch.missingSettlementCount || 0);
+            document.getElementById('metric-missing').innerText = totalMissing;
+            document.getElementById('metric-missing-sub').innerText = `${batch.missingInternalCount} Int / ${batch.missingSettlementCount} Settl`;
+
+            document.getElementById('metric-duplicate').innerText = batch.duplicateCount || 0;
+        }
+
+        async function loadBatchResults() {
+            if (!currentBatchId) return;
+
+            let url = `/api/v1/reconciliation/batches/${currentBatchId}/results?size=100`;
+            if (currentStatusFilter) {
+                url += `&status=${currentStatusFilter}`;
+            }
+
+            try {
+                const res = await fetch(url);
+                const page = await res.json();
+                renderResultsTable(page.content || []);
+            } catch (err) {
+                console.error("Failed to load results", err);
+            }
+        }
+
+        function renderResultsTable(results) {
+            const tbody = document.getElementById('results-table-body');
+            if (!results || results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No matching records found for this filter.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = results.map(r => {
+                const intRef = r.internalTransaction ? r.internalTransaction.referenceId : 'N/A';
+                const stlRef = r.settlementRecord ? r.settlementRecord.settlementRefId : 'N/A';
+                const intAmt = r.internalTransaction ? `$${r.internalTransaction.amount.toFixed(2)}` : '-';
+                const stlAmt = r.settlementRecord ? `$${r.settlementRecord.settlementAmount.toFixed(2)}` : '-';
+
+                let badgeClass = 'badge-matched';
+                if (r.matchStatus === 'DISCREPANCY') badgeClass = 'badge-discrepancy';
+                else if (r.matchStatus === 'MISSING_INTERNAL') badgeClass = 'badge-missing-internal';
+                else if (r.matchStatus === 'MISSING_SETTLEMENT') badgeClass = 'badge-missing-settlement';
+                else if (r.matchStatus === 'DUPLICATE') badgeClass = 'badge-duplicate';
+
+                const isResolved = r.resolved;
+                const actionBtn = isResolved 
+                    ? `<span style="color: var(--status-matched); font-size: 0.75rem; font-weight: 600;">✓ Resolved</span>`
+                    : (r.matchStatus !== 'MATCHED' 
+                        ? `<button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.75rem;" onclick="openResolveModal(${r.id}, '${intRef}', '${stlRef}', '${r.notes || ''}')">Resolve</button>`
+                        : `<span style="color: var(--text-muted); font-size: 0.75rem;">N/A</span>`);
+
+                return `
+                    <tr>
+                        <td><span class="badge ${badgeClass}">${r.matchStatus}</span></td>
+                        <td style="font-weight: 600; font-size: 0.8rem;">${r.discrepancyCategory}</td>
+                        <td class="mono">${intRef}</td>
+                        <td class="mono">${stlRef}</td>
+                        <td style="font-weight: 600;">${intAmt}</td>
+                        <td style="font-weight: 600;">${stlAmt}</td>
+                        <td style="color: ${r.amountDifference > 0 ? 'var(--status-mismatch)' : 'var(--text-muted)'}; font-weight: 700;">$${r.amountDifference.toFixed(2)}</td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterResults(status, tabEl) {
+            currentStatusFilter = status;
+            document.querySelectorAll('.filter-tabs .tab').forEach(t => t.classList.remove('active'));
+            tabEl.classList.add('active');
+            loadBatchResults();
+        }
+
+        async function saveToleranceRules() {
+            const amountTol = parseFloat(document.getElementById('input-amount-tol').value);
+            const feeTol = parseFloat(document.getElementById('input-fee-tol').value);
+            const dateWindow = parseInt(document.getElementById('input-date-window').value);
+
+            try {
+                const res = await fetch('/api/v1/tolerances', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: "Custom UI Rule " + new Date().toLocaleTimeString(),
+                        amountTolerance: amountTol,
+                        feeTolerance: feeTol,
+                        dateWindowMinutes: dateWindow,
+                        currencyStrict: true,
+                        isDefault: true
+                    })
+                });
+                if (res.ok) {
+                    showToast("Matching rules updated successfully!", "success");
+                }
+            } catch (err) {
+                showToast("Failed to save matching rules", "error");
+            }
+        }
+
+        function openResolveModal(id, intRef, stlRef, notes) {
+            activeResolvingId = id;
+            document.getElementById('modal-discrepancy-info').innerHTML = `
+                <div><b>Internal Ref:</b> ${intRef}</div>
+                <div><b>Settlement Ref:</b> ${stlRef}</div>
+                <div style="margin-top: 0.4rem; color: var(--status-mismatch);"><b>Engine Note:</b> ${notes}</div>
+            `;
+            document.getElementById('modal-resolution-notes').value = '';
+            document.getElementById('resolution-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('resolution-modal').classList.remove('active');
+        }
+
+        async function submitResolution() {
+            const notes = document.getElementById('modal-resolution-notes').value;
+            if (!notes || notes.trim() === '') {
+                showToast("Please enter resolution audit notes.", "error");
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/v1/reconciliation/results/${activeResolvingId}/resolve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ resolutionNotes: notes, resolvedBy: "UI_AUDITOR" })
+                });
+
+                if (res.ok) {
+                    showToast("Discrepancy resolved and audited!", "success");
+                    closeModal();
+                    loadBatchResults();
+                }
+            } catch (err) {
+                showToast("Failed to submit resolution", "error");
+            }
+        }
+
+        function exportCurrentBatch() {
+            if (!currentBatchId) return;
+            window.location.href = `/api/v1/reconciliation/batches/${currentBatchId}/export`;
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
