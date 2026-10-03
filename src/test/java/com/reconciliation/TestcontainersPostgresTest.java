@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("postgres")
 class TestcontainersPostgresTest {
 
     @Container

@@ -25,6 +25,8 @@ jobs:
         run: mvn -B compile
 
       - name: Run Unit & Integration Tests (Testcontainers)
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
         run: mvn -B test
 
       - name: Build Docker Container Image
